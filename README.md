@@ -1,34 +1,40 @@
 # Brute
 
-A program that bruteforce SHA-2 hashed password.
+A program that bruteforce SHA-2 hashed password from a word list file.
 
-example : `brute <SHA-2> input`
+## Usage
 
-## SHA-2
-Quote from a random website :
-SHA-2 is a collection of hashing algorithms, each differentiated by the size of the output string (in bits). For example, there are SHA-224, SHA-256, SHA-384, and SHA-512 algorithms. The size of the output hash matters because the longer it is, the more secure it is. However, the longer the output, the more computational power it requires.
+`brute 0808f64e60d58979fcb676c96ec938270dea42445aeefcd3a4e6f8db example_words.txt`
 
-The SHA-2 algorithm collection was created and first published by the National Security Agency (NSA) in the US. It is one of the most widely used hashing algorithms, and in some places, legally required to be used for password protection and storage.
+Where `0808f64e60d58979fcb676c96ec938270dea42445aeefcd3a4e6f8db` is a sha-2 hash (more precisely sha-224) of the word 'foo'.
+`example_words.txt` is the word list file. In this file you place all possible words that can potentially match with the sha-2 hash when hashed.
 
-Use this implementation : https://github.com/ogay/sha2/blob/master/sha2.c
+If `example_words.txt` contain the word 'foo', then we will have this output :
 
-## Hash to break
+```bash
+./brute 0808f64e60d58979fcb676c96ec938270dea42445aeefcd3a4e6f8db example_words.txt
+Match found! : 0808f64e60d58979fcb676c96ec938270dea42445aeefcd3a4e6f8db | foo
+finished...
+```
 
-* SHA-224
-* SHA-256
-* SHA-384
-* SHA-512
+If not then nothing will be displayed.
 
-## Password to crack
+### Build
 
-* foo
-* bar
-* 12345
+* CLI : `make brute`
 
+## SHA-2 implementation
 
-CPP project with version 17.
+The sha-2 header is from another [git repo](https://github.com/ogay/sha2).
+This implementation is written in C. I just simply took this and adapt to my C++ code.
 
 ## Milestone
 
-* First working version.
-* Improve performance.
+* [x] First working version.
+    * [x] sha-224
+    * [ ] sha-256
+    * [ ] sha-384
+    * [ ] sha-512
+* [] benchmark performance
+* [] implement multithreading
+* [] implement parallel calculations
