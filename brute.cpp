@@ -1,9 +1,3 @@
-/*
- *
- * Bruteforce
- *
-*/
-
 #include <iostream>
 #include <fstream>
 #include <sys/types.h>
@@ -11,36 +5,48 @@
 
 using namespace std;
 
-uint ReadDictionnaryFile(char* filename, string* wordList);
+#define MSG_USAGE "usage : brute <SHA-224> example_dict.txt"
+#define MSG_FOUND "Match found! : "
+#define EXC_NOFILE 42
+#define MAX_WORDS 2056
 
-int main(int argc, char** argv) {
+struct WordList
+{
+    string *words;
+    uint count;
+};
 
-    if ( argc <= 2)
+
+WordList ReadWordListFile(string filename);
+string HashWord(string word);
+
+int main(int argc, char** argv)
+{
+    if (argc <= 2)
     {
-        cout << "usage : brute foo dict.txt" << endl;
+        cout << MSG_USAGE << endl;
         return 1;
     }
 
-    string sha2Input = string(argv[1]);
-    char* dictionaryFilename = argv[2];
-    string* wordlist = new string[2056];
-
-    uint lines = ReadDictionnaryFile(dictionaryFilename, wordlist);
-    for(uint i=0;i<lines;i++)
+    string sha2_input = argv[1];
+    string dictionary_file = argv[2];
+    WordList wordList;
+    try
     {
-        uint8 digest[SHA224_DIGEST_SIZE];
-        sha224((const uint8 *)wordlist[i].data(), wordlist[i].length(),digest);
-        
-        char output[2 * SHA512_DIGEST_SIZE + 1];
-        int j;
-        output[2 * SHA224_DIGEST_SIZE] = '\0';
-        for(j=0;j<(int) SHA224_DIGEST_SIZE; j++){
-            sprintf(output + 2 * j, "%02x", digest[j]);
-        }
+        wordList = ReadWordListFile(dictionary_file);
+    }
+    catch(int code)
+    {
+        cout << "Code " << code << "\n" << "No file for " << dictionary_file << "\n";
+        return -1;
+    }
 
-        if (sha2Input.compare(output) == 0)
+    for(uint i=0;i<wordList.count;i++)
+    {
+        string output = HashWord(wordList.words[i]);
+        if (sha2_input.compare(output) == 0)
         {
-            cout << "Match found! : " << output << " | " << wordlist[i] << endl;
+            cout << MSG_FOUND << output << " | " << wordList.words[i] << endl;
         }
     }
 
@@ -48,21 +54,41 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-uint ReadDictionnaryFile(char* filename, string* wordList)
+WordList ReadWordListFile(string filename)
 {
     ifstream inputFile;
-    string line;
+    string wordList[MAX_WORDS];
 
     // open dictionary filename
     inputFile.open(filename);
-    uint i=0;
+    uint wordCount=0;
     if(inputFile.is_open())
     {
-        while ( getline(inputFile,wordList[i]))
+        while ( getline(inputFile,wordList[wordCount]))
         {
-            i++;
+            wordCount++;
         }
+        inputFile.close();
     }
-    inputFile.close();
-    return i;
+    else{
+        throw EXC_NOFILE;
+    }
+
+    return WordList{wordList, wordCount};
+}
+
+string HashWord(string word)
+{
+    // Code is taken from the test in sha-2
+    uint8 digest[SHA224_DIGEST_SIZE];
+    sha224((const uint8 *)word.data(), word.length(),digest);
+
+    char hashOutput[2 * SHA512_DIGEST_SIZE + 1];
+    hashOutput[2 * SHA224_DIGEST_SIZE] = '\0';
+    for(int i=0;i<(int) SHA224_DIGEST_SIZE; i++)
+    {
+        sprintf(hashOutput + 2 * i, "%02x", digest[i]);
+    }
+
+    return string(hashOutput);
 }
