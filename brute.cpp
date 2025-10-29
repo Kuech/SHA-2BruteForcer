@@ -3,12 +3,21 @@
 #include <sys/types.h>
 #include "sha2/sha2.h"
 
-using namespace std;
-
-#define MSG_USAGE "usage : brute <SHA-224> example_dict.txt"
+#define MSG_USAGE "usage : brute <SHA-2-HashFunction> <SHA-2-HashValue> example_dict.txt"
 #define MSG_FOUND "Match found! : "
 #define EXC_NOFILE 42
-#define MAX_WORDS 2056
+#define EXC_INVALIDHASH 1
+#define MAX_WORDS 65536
+
+using namespace std;
+
+enum HashType
+{
+    SHA224,
+    SHA256,
+    SHA384,
+    SHA512
+};
 
 struct WordList
 {
@@ -16,8 +25,95 @@ struct WordList
     uint count;
 };
 
+struct HashProperties
+{
+    HashType hash_type;
+    uint digest_size;
+    uint string_hash_length;
+};
+
+class Hash
+{
+private:
+    void HashWord(string word)
+    {
+        switch(_hash_properties.hash_type)
+        {
+            case SHA224:
+                sha224((const uint8 *)word.data(), word.length(),_digest);
+            break;
+            case SHA256:
+                sha256((const uint8 *)word.data(), word.length(),_digest);
+            break;
+            case SHA384:
+                sha384((const uint8 *)word.data(), word.length(),_digest);
+            break;
+            case SHA512:
+                sha512((const uint8 *)word.data(), word.length(),_digest);
+            break;
+        }
+    }
+
+    void SetHashProperties(HashType hash_type)
+    {
+        switch(hash_type) {
+            case SHA224:
+                _hash_properties.digest_size = SHA224_DIGEST_SIZE;
+                _hash_properties.string_hash_length = SHA224_DIGEST_SIZE*2;
+            break;
+            case SHA256:
+                _hash_properties.digest_size = SHA256_DIGEST_SIZE;
+                _hash_properties.string_hash_length = SHA256_DIGEST_SIZE*2;
+            break;
+            case SHA384:
+                _hash_properties.digest_size = SHA384_DIGEST_SIZE;
+                _hash_properties.string_hash_length = SHA384_DIGEST_SIZE*2;
+            break;
+            case SHA512:
+                _hash_properties.digest_size = SHA512_DIGEST_SIZE;
+                _hash_properties.string_hash_length = SHA512_DIGEST_SIZE*2;
+            break;
+        }
+        _hash_properties.hash_type = hash_type;
+    }
+
+public:
+    uint8* _digest;
+    HashProperties _hash_properties;
+
+    Hash(HashType hash_type, string SHA2HashedString)
+    {
+        SetHashProperties(hash_type);
+        if(SHA2HashedString.length() != _hash_properties.string_hash_length)
+        {
+            throw 1;
+        }
+        _digest = new uint8[_hash_properties.digest_size];
+
+        char* hashed_string = &SHA2HashedString.data()[0];
+        for(int i=0;i<_hash_properties.digest_size;i++)
+        {
+            char hex_string[] = { hashed_string[0], hashed_string[1] };
+            _digest[i] = stoi(hex_string,0,16);
+            hashed_string = hashed_string + 2;
+        }
+    }
+
+    string HashInStringHex()
+    {
+        char hashOutput[2 * SHA512_DIGEST_SIZE + 1];
+        hashOutput[2 * _hash_properties.digest_size] = '\0';
+        for(int i=0;i<(int) _hash_properties.digest_size; i++)
+        {
+            sprintf(hashOutput + 2 * i, "%02x", _digest[i]);
+        }
+
+        return string(hashOutput);
+    }
+};
 
 WordList ReadWordListFile(string filename);
+// To be removed when implementation is done
 string HashWord(string word);
 
 int main(int argc, char** argv)
@@ -27,7 +123,6 @@ int main(int argc, char** argv)
         cout << MSG_USAGE << endl;
         return 1;
     }
-
     string sha2_input = argv[1];
     string dictionary_file = argv[2];
     WordList wordList;
@@ -37,7 +132,7 @@ int main(int argc, char** argv)
     }
     catch(int code)
     {
-        cout << "Code " << code << "\n" << "No file for " << dictionary_file << "\n";
+        cout << "Code " << code << "\n" << "No file for " << dictionary_file << endl;
         return -1;
     }
 
@@ -50,7 +145,7 @@ int main(int argc, char** argv)
         }
     }
 
-    cout << "finished..." << endl;
+    cout << "finished..." << '\n';
     return 0;
 }
 
@@ -77,6 +172,7 @@ WordList ReadWordListFile(string filename)
     return WordList{wordList, wordCount};
 }
 
+// To be removed when implementation is done
 string HashWord(string word)
 {
     // Code is taken from the test in sha-2
