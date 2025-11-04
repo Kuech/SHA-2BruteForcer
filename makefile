@@ -1,12 +1,12 @@
-sha2Folder = sha2
+COMPILER=g++
 
-brute: brute.o sha2/sha2.o
-	g++ $^ -o $@
+brute: src/brute.o src/sha2/sha2.o
+	$(COMPILER) $^ -o $@
 
-brute.o: brute.cpp
-	g++ -std=c++17 -Wall -Wextra -c $^ -o $@
+src/brute.o: src/brute.cpp
+	$(COMPILER) -std=c++17 -Wall -Wextra -c $^ -o $@
 
-sha2/sha2.o:
-	cd sha2 && make
+src/sha2/sha2.o:
+	cd src/sha2 && make
 clean:
-	rm -f brute brute.o sha2/sha2.o
+	rm -f brute src/brute.o src/sha2/sha2.o

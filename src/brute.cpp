@@ -77,6 +77,27 @@ private:
         _hash_properties.hash_type = hash_type;
     }
 
+    HashType GetHashTypeFromString(string hash_type_string)
+    {
+        if(hash_type_string == "sha224")
+        {
+            return SHA224;
+        }
+        if(hash_type_string == "sha256")
+        {
+            return SHA256;
+        }
+        if(hash_type_string == "sha384")
+        {
+            return SHA384;
+        }
+        if(hash_type_string == "sha512")
+        {
+            return SHA512;
+        }
+        throw 2;
+    }
+
 public:
     uint8* _digest;
     HashProperties _hash_properties;
@@ -99,6 +120,9 @@ public:
         }
     }
 
+    Hash(string hash_type_string, string SHA2HashedString) : Hash(GetHashTypeFromString(hash_type_string), SHA2HashedString)
+    {}
+
     string HashInStringHex()
     {
         char hashOutput[2 * SHA512_DIGEST_SIZE + 1];
@@ -118,13 +142,15 @@ string HashWord(string word);
 
 int main(int argc, char** argv)
 {
-    if (argc <= 2)
+    if (argc <= 3)
     {
         cout << MSG_USAGE << endl;
         return 1;
     }
-    string sha2_input = argv[1];
-    string dictionary_file = argv[2];
+    string sha2_mode = argv[1];
+    string sha2_input = argv[2];
+    string dictionary_file = argv[3];
+    Hash inputHash = Hash(sha2_mode,sha2_input);
     WordList wordList;
     try
     {
