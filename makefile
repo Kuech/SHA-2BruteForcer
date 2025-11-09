@@ -1,16 +1,22 @@
-COMPILER=g++
+COMPILER=clang++
+CPP_VERSION=-std=c++17
+BUILD=$(COMPILER) $(CPP_VERSION) -Wall -Wextra
 
-brute: src/brute.o src/sha2/sha2.o
+BUILD_FOLDER=bin
+
+$(BUILD_FOLDER)/brute: src/brute.o src/sha2/sha2.o $(BUILD_FOLDER)
 	$(COMPILER) $^ -o $@
 
 src/brute.o: src/brute.cpp
-	$(COMPILER) -std=c++17 -Wall -Wextra -c $^ -o $@
+	$(BUILD) -c $^ -o $@
 
 src/sha2/sha2.o:
 	cd src/sha2 && make
 
-sha2libTest: src/sha2lib/sha2.cpp
-	$(COMPILER) -std=c++17 -Wall -Wextra $^ -o $@
+$(BUILD_FOLDER)/sha2libTest: src/sha2lib/sha2.cpp
+	$(BUILD) $^ -o $@
 
 clean:
-	rm -f brute src/brute.o src/sha2/sha2.o
+	rm -rf bin
+
+.PHONY: clean $(BUILD_FOLDER)
