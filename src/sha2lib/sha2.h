@@ -1,5 +1,5 @@
 #include <cstdint>
 
-#define ROTATE(r, i) ((i >> r) | (i << (32 - r)))
+#define ROTATE(i, r) ((i >> r) | (i << (32 - r)))
 
-uint8_t* hash_sha256(uint8_t* input);
+uint8_t* hash_sha256(uint32_t* input);
