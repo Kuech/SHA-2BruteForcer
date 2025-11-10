@@ -31,9 +31,7 @@ uint32_t k[64] = {
    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2 
 };
 
-enum localVarName { la=0, lb=1, lc=2, ld=3, le=4, lf=5, lg=6, lh=7};
-
-uint8_t* build_msg_block(char* input);
+uint8_t* build_msg_block(const char* input);
 uint32_t* pre_process_step(uint8_t* input);
 
 uint8_t* hash_sha256(uint32_t* input)
@@ -104,85 +102,103 @@ uint32_t* pre_process_step(uint8_t* input)
     return word;
 }
 
-
-
-uint8_t* build_msg_block(char* input)
+uint8_t* build_msg_block(const char* input)
 {
     uint length = strlen(input);
+    /*
     if(strlen(input) > 56)
     {
         cout << "Message too long" << '\n';
         return nullptr_t();
     }
+    */
 
-    uint8_t* msg = new uint8_t[64]; // 512 bit
-    char* end = &input[length];
+    uint8_t* msg_block = new uint8_t[64];
+    const char* end = &input[length];
     uint count = 0;
     while(input<end)
     {
-        msg[count] = *input;
+        msg_block[count] = *input;
         count++;
         input++;
     }
 
-    msg[count] = 0b10000000;
+    msg_block[count] = 0b10000000;
     count++;
 
     for(uint i=count;i<56;i++)
     {
-        msg[i] = 0;
+        msg_block[i] = 0;
     }
 
     uint64_t lenghInBit =length * 8;
     for(size_t i=0;i<8;i++)
     {
-        msg[56+i] = lenghInBit >> (56 - 8 * i) & 0xFF;
+        msg_block[56+i] = lenghInBit >> (56 - 8 * i) & 0xFF;
     }
 
-    return msg;
+    return msg_block; // message length
 }
 
-int main(int argc, char **argv) {
-
-    uint8_t* msg = build_msg_block(argv[1]);
-    uint32_t* pre_proc_msg = pre_process_step(msg);
+bool testSha256Hash(const char* inputString, const uint8_t* expectedSha2Hash)
+{
+    uint8_t* msg_block = build_msg_block(inputString);
+    uint32_t* pre_proc_msg = pre_process_step(msg_block);
     uint8_t* sha256Hash = hash_sha256(pre_proc_msg);
-
-    /*
-    // message block init
-    for(int i=0;i<16;i++)
-    {
-        for(int j=0;j<4;j++)
-        {
-            cout << bitset<8>(msg[(i*4)+j]) << ' ';
-        }
-        cout << '\n';
-    }
-    */
-    
-    /*
-    // pre process step
-    for(int i=0;i<64;i++)
-    {
-        cout << bitset<32>(pre_proc_msg[i]) << '\n';
-    }
-    */
-
-    uint32_t test = 0xa0b0c0d0;
-    uint8_t test1 = test;
-    cout << "test : " << bitset<8>(test1) << '\n';
+    bool isTestSuccess = true;
 
     // SHA-256
-    for(int i=0;i<8;i++)
+    for(int i=0;i<32;i++)
     {
-        for(int j=0;j<4;j++)
+        if(sha256Hash[i] != expectedSha2Hash[i])
         {
-            cout << std::hex << (uint)sha256Hash[(i*4)+j] << ' ';
+            isTestSuccess = false;
         }
-        cout << '\n';
     }
 
-    destroy(msg, msg+64);
+    destroy(msg_block, msg_block+64);
     destroy(pre_proc_msg, pre_proc_msg+64);
     destroy(sha256Hash, sha256Hash+32);
+
+    return isTestSuccess;
+}
+
+int main() {
+    static const string testString = "aaa";
+    // 64‑hex‑digit literal → 32 bytes
+    static const uint8_t data[32] = {
+        0x98, 0x34, 0x87, 0x6d, 0xcf, 0xb0, 0x5c, 0xb1,
+        0x67, 0xa5, 0xc2, 0x49, 0x53, 0xeb, 0xa5, 0x8c,
+        0x4a, 0xc8, 0x9b, 0x1a, 0xdf, 0x57, 0xf2, 0x8f,
+        0x2f, 0x9d, 0x09, 0xaf, 0x10, 0x7e, 0xe8, 0xf0
+    };
+
+    const string testString2 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    static const uint8_t data2[32] = {
+        0x31, 0xeb, 0xa5, 0x1c, 0x31, 0x3a, 0x5c, 0x08,
+        0x22, 0x6a, 0xdf, 0x18, 0xd4, 0xa3, 0x59, 0xcf,
+        0xdf, 0xd8, 0xd2, 0xe8, 0x16, 0xb1, 0x3f, 0x4a,
+        0xf9, 0x52, 0xf7, 0xea, 0x65, 0x84, 0xdc, 0xfb
+    };
+
+    bool test_single_chunk = testSha256Hash(testString.data(), data);
+    bool test_multiple_chunk = testSha256Hash(testString.data(), data2);
+
+    if(test_single_chunk)
+    {
+        cout << "sha256 test on \"aaa\" is a success!" << '\n';
+    }
+    else
+    {
+        cout << "FAIL @ sha256 test on \"aaa\"" << '\n';
+    }
+
+    if(test_multiple_chunk)
+    {
+        cout << "sha256 test on \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" is a success!" << '\n';
+    }
+    else
+    {
+        cout << "FAIL @ sha256 test on \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"" << '\n';
+    }
 }
