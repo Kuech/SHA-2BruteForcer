@@ -31,9 +31,6 @@ uint32_t k[64] = {
    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2 
 };
 
-uint8_t* build_msg_block(const char* input);
-uint32_t* pre_process_step(uint8_t* input);
-
 uint8_t* hash_sha256(uint32_t* input)
 {
     uint32_t la = h[0];
@@ -140,7 +137,16 @@ uint8_t* build_msg_block(const char* input)
     return msg_block; // message length
 }
 
-bool testSha256Hash(const char* inputString, const uint8_t* expectedSha2Hash)
+void printSha256(const uint8_t* sha256Hash)
+{
+    for(int i=0;i<32;i++)
+    {
+        cout << std::hex << static_cast<uint>(sha256Hash[i]) << ' ';
+    }
+    cout << '\n';
+}
+
+void testSha256Hash(const char* inputString, const uint8_t* expectedSha2Hash)
 {
     uint8_t* msg_block = build_msg_block(inputString);
     uint32_t* pre_proc_msg = pre_process_step(msg_block);
@@ -156,11 +162,27 @@ bool testSha256Hash(const char* inputString, const uint8_t* expectedSha2Hash)
         }
     }
 
+    string testResult;
+    if(isTestSuccess)
+    {
+        testResult = "✅";
+    }
+    else
+    {
+        testResult = "❌";
+    }
+
+    cout << "================================================================================================\n";
+    cout << "Test for \"" << inputString << "\" " << testResult << '\n';
+    cout << "Expected hash =>\n";
+    printSha256(expectedSha2Hash);
+    cout << "Actual hash =>\n";
+    printSha256(sha256Hash);
+    cout << "================================================================================================\n\n";
+
     destroy(msg_block, msg_block+64);
     destroy(pre_proc_msg, pre_proc_msg+64);
     destroy(sha256Hash, sha256Hash+32);
-
-    return isTestSuccess;
 }
 
 int main() {
@@ -181,24 +203,6 @@ int main() {
         0xf9, 0x52, 0xf7, 0xea, 0x65, 0x84, 0xdc, 0xfb
     };
 
-    bool test_single_chunk = testSha256Hash(testString.data(), data);
-    bool test_multiple_chunk = testSha256Hash(testString.data(), data2);
-
-    if(test_single_chunk)
-    {
-        cout << "sha256 test on \"aaa\" is a success!" << '\n';
-    }
-    else
-    {
-        cout << "FAIL @ sha256 test on \"aaa\"" << '\n';
-    }
-
-    if(test_multiple_chunk)
-    {
-        cout << "sha256 test on \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\" is a success!" << '\n';
-    }
-    else
-    {
-        cout << "FAIL @ sha256 test on \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"" << '\n';
-    }
+    testSha256Hash(testString.data(), data);
+    //testSha256Hash(testString2.data(), data2);
 }
