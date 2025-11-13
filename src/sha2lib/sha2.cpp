@@ -31,6 +31,12 @@ uint32_t k[64] = {
    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2 
 };
 
+struct message_block
+{
+    uint length;
+    uint8_t* block;
+};
+
 uint8_t* hash_sha256(uint32_t* input)
 {
     uint32_t la = h[0];
@@ -76,18 +82,24 @@ uint8_t* hash_sha256(uint32_t* input)
     {
         sha256[i] = h[i/4] >> (24 - ((i%4)*8));
     }
-
     return sha256;
 }
 
-uint32_t* pre_process_step(uint8_t* input)
+uint32_t* pre_process_step(const uint8_t* chunk)
 {
+    cout << "chunk size => ";
+    for (int i=0;i<64;i++)
+    {
+        cout << std::hex << static_cast<uint>(chunk[i]) << ' ';
+    }
+    cout << '\n';
+
     uint32_t* word = new uint32_t[64];
 
     for(int i=0;i<64;i++)
     {
         // Yeah I know it's ugly, but if you know bitwise operations, it makes sense...
-        word[i/4] = (input[i] << (24 - ((i%4) * 8))) | word[i/4];
+        word[i/4] = (chunk[i] << (24 - ((i%4) * 8))) | word[i/4];
     }
 
     for(int i=16;i<64;i++)
@@ -99,42 +111,37 @@ uint32_t* pre_process_step(uint8_t* input)
     return word;
 }
 
-uint8_t* build_msg_block(const char* input)
+message_block* build_msg_block(const string input)
 {
-    uint length = strlen(input);
-    /*
-    if(strlen(input) > 56)
-    {
-        cout << "Message too long" << '\n';
-        return nullptr_t();
-    }
-    */
+    cout << "length = " << input.length() << '\n';
+    cout << input.data() << '\n';
 
-    uint8_t* msg_block = new uint8_t[64];
-    const char* end = &input[length];
-    uint count = 0;
-    while(input<end)
+    const uint r=64-((input.length()+1+8)%64);
+    message_block* msg= new(message_block);
+    msg->length = (input.length()+1+8)+r;;
+    msg->block = new uint8_t[msg->length];
+    cout << "r = " << r << '\n';
+    cout << "block size = " << msg->length << '\n';
+
+    for(size_t i=0;i<input.length();i++)
     {
-        msg_block[count] = *input;
-        count++;
-        input++;
+        msg->block[i] = input.data()[i];
     }
 
-    msg_block[count] = 0b10000000;
-    count++;
+    msg->block[input.length()] = 0b10000000;
 
-    for(uint i=count;i<56;i++)
+    for(size_t i=input.length()+1;i<msg->length-8;i++)
     {
-        msg_block[i] = 0;
+        msg->block[i] = 0;
     }
 
-    uint64_t lenghInBit =length * 8;
+    uint64_t lenghInBit =input.length() * 8;
     for(size_t i=0;i<8;i++)
     {
-        msg_block[56+i] = lenghInBit >> (56 - 8 * i) & 0xFF;
+        msg->block[(msg->length-8)+i] = lenghInBit >> (56 - 8 * i) & 0xFF;
     }
 
-    return msg_block; // message length
+    return msg; // message length
 }
 
 void printSha256(const uint8_t* sha256Hash)
@@ -146,11 +153,20 @@ void printSha256(const uint8_t* sha256Hash)
     cout << '\n';
 }
 
-void testSha256Hash(const char* inputString, const uint8_t* expectedSha2Hash)
+void testSha256Hash(const string inputString, const uint8_t* expectedSha2Hash)
 {
-    uint8_t* msg_block = build_msg_block(inputString);
-    uint32_t* pre_proc_msg = pre_process_step(msg_block);
-    uint8_t* sha256Hash = hash_sha256(pre_proc_msg);
+    uint32_t* pre_proc_msg;
+    uint8_t* sha256Hash;
+    const message_block* msg_block = build_msg_block(inputString);
+    uint round = msg_block->length/64;
+    
+    cout << "msg block length : " << msg_block->length << '\n';
+    cout << "Round : " << round << '\n';
+    for(uint i=0;i<round;i++)
+    {
+        pre_proc_msg = pre_process_step(msg_block->block+(i*64));
+        sha256Hash = hash_sha256(pre_proc_msg);
+    }
     bool isTestSuccess = true;
 
     // SHA-256
@@ -180,9 +196,10 @@ void testSha256Hash(const char* inputString, const uint8_t* expectedSha2Hash)
     printSha256(sha256Hash);
     cout << "================================================================================================\n\n";
 
-    destroy(msg_block, msg_block+64);
-    destroy(pre_proc_msg, pre_proc_msg+64);
-    destroy(sha256Hash, sha256Hash+32);
+    delete[] msg_block->block;
+    delete msg_block;
+    delete[] pre_proc_msg;
+    delete[] sha256Hash;
 }
 
 int main() {
@@ -195,14 +212,17 @@ int main() {
         0x2f, 0x9d, 0x09, 0xaf, 0x10, 0x7e, 0xe8, 0xf0
     };
 
-    const string testString2 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    static const string testString2 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     static const uint8_t data2[32] = {
-        0x31, 0xeb, 0xa5, 0x1c, 0x31, 0x3a, 0x5c, 0x08,
-        0x22, 0x6a, 0xdf, 0x18, 0xd4, 0xa3, 0x59, 0xcf,
-        0xdf, 0xd8, 0xd2, 0xe8, 0x16, 0xb1, 0x3f, 0x4a,
-        0xf9, 0x52, 0xf7, 0xea, 0x65, 0x84, 0xdc, 0xfb
+        0xb3, 0x54, 0x39, 0xa4,
+        0xac, 0x6f, 0x09, 0x48,
+        0xb6, 0xd6, 0xf9, 0xe3,
+        0xc6, 0xaf, 0x0f, 0x5f,
+        0x59, 0x0c, 0xe2, 0x0f,
+        0x1b, 0xde, 0x70, 0x90,
+        0xef, 0x79, 0x70, 0x68,
+        0x6e, 0xc6, 0x73, 0x8a
     };
-
-    testSha256Hash(testString.data(), data);
-    //testSha256Hash(testString2.data(), data2);
+    testSha256Hash(testString, data);
+    testSha256Hash(testString2, data2);
 }
