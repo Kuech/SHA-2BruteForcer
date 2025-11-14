@@ -1,6 +1,6 @@
-COMPILER=clang++
+COMPILER=g++
 CPP_VERSION=-std=c++17
-BUILD=$(COMPILER) $(CPP_VERSION) -Wall -Wextra
+BUILD=$(COMPILER) $(CPP_VERSION) -Wall -Wextra -O2 -fsanitize=address,undefined
 
 BUILD_FOLDER=bin
 
@@ -14,6 +14,7 @@ src/sha2/sha2.o:
 	cd src/sha2 && make
 
 $(BUILD_FOLDER)/sha2libTest: src/sha2lib/sha2.cpp
+	mkdir -p $(BUILD_FOLDER)
 	$(BUILD) $^ -o $@
 
 clean:
