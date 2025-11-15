@@ -13,7 +13,7 @@ src/brute.o: src/brute.cpp
 src/sha2/sha2.o:
 	cd src/sha2 && make
 
-$(BUILD_FOLDER)/sha2libTest: src/sha2lib/sha2.cpp
+$(BUILD_FOLDER)/sha2libTest: src/sha2lib/sha2.cpp src/sha2lib/sha2.h
 	mkdir -p $(BUILD_FOLDER)
 	$(BUILD) $^ -o $@
 
