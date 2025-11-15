@@ -27,7 +27,7 @@ Sha256::Sha256(const std::string message)
     for(uint i=0;i<round;i++)
     {
         uint32_t pre_proc_msg[64];
-        memset(pre_proc_msg, 0, 64);
+        memset(pre_proc_msg, 0, 64*sizeof(uint32_t));
         this->pre_process_step(&this->msg_block.block[i*64], &pre_proc_msg[0]);
         this->hash_sha256(pre_proc_msg, &this->sha256_32bit_entry[0]);
     }
@@ -116,9 +116,9 @@ void Sha256::build_msg_block(const string input, message_block* msg)
     const uint remaining_bits=64-((input.length()+1+8)%64);
     msg->length = (input.length()+1+8)+remaining_bits;;
     msg->block = new uint8_t[msg->length];
-    memset(msg->block, 0, msg->length);
+    memset(msg->block, 0, msg->length * sizeof(uint8_t));
 
-    memcpy(msg->block,input.data(),input.length());
+    memcpy(msg->block,input.data(),input.length() * sizeof(uint8_t));
     msg->block[input.length()] = 0b10000000;
 
     uint64_t stringlengthInBit =input.length() * 8;
