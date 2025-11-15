@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <memory>
 
 #define ROTATE(i, r) ((i >> r) | (i << (32 - r)))
 // Check out https://sha256algorithm.com/
@@ -21,28 +22,28 @@ const static uint32_t k[64] = {
 
 Sha256::Sha256(const std::string message)
 {
-    build_msg_block(message, &this->msg_block);
+    this->build_msg_block(message, &this->msg_block);
     uint round = this->msg_block.length/64;
     for(uint i=0;i<round;i++)
     {
         uint32_t pre_proc_msg[64];
         memset(pre_proc_msg, 0, 64);
-        pre_process_step(&this->msg_block.block[i*64], &pre_proc_msg[0]);
-        hash_sha256(pre_proc_msg, &this->sha256_32bit_entry[0]);
+        this->pre_process_step(&this->msg_block.block[i*64], &pre_proc_msg[0]);
+        this->hash_sha256(pre_proc_msg, &this->sha256_32bit_entry[0]);
     }
 }
 
-Sha256::Sha256(const uint32_t _sha256_32bit_entry[8])
+Sha256::Sha256(const uint32_t _sha256_32bit_entry[8]) : Sha2()
 {
     copy(_sha256_32bit_entry,_sha256_32bit_entry+8,this->sha256_32bit_entry);
 }
 
-Sha256::~Sha256()
+Sha2::~Sha2()
 {
     delete[] this->msg_block.block;
 }
 
-bool Sha256::operator==(const Sha256 hashedMessage)
+auto Sha256::operator==(const Sha256 hashedMessage)
 {
     for(int i=0;i<8;i++)
     {
@@ -136,13 +137,26 @@ void printSha256(const uint32_t* sha256Hash)
     cout << std::dec << endl;
 }
 
+// Temporary function, since operator== is not working with base class
+bool tempSha256Check(uint32_t a[8], uint32_t b[8])
+{
+    for(int i=0;i<8;i++)
+    {
+        if(a[i] != b[i])
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 void testSha256Hash(const string inputString, const uint32_t* expectedSha2Hash)
 {
-    Sha256 hashedString = Sha256(inputString);
-    Sha256 expectedSha256 = Sha256(expectedSha2Hash);
+    Sha2* hashedString = new Sha256(inputString);
+    Sha2* expectedSha256 = new Sha256(expectedSha2Hash);
 
     string testResult;
-    if(hashedString == expectedSha256)
+    if(tempSha256Check(hashedString->sha256_32bit_entry, expectedSha256->sha256_32bit_entry))
     {
         testResult = "✅";
     }
@@ -156,8 +170,10 @@ void testSha256Hash(const string inputString, const uint32_t* expectedSha2Hash)
     cout << "Expected hash =>\n";
     printSha256(expectedSha2Hash);
     cout << "Actual hash =>\n";
-    printSha256(hashedString.sha256_32bit_entry);
+    printSha256(hashedString->sha256_32bit_entry);
     cout << "================================================================================================\n\n";
+    delete hashedString;
+    delete expectedSha256;
 }
 
 int main() {

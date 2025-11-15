@@ -8,14 +8,15 @@ struct message_block
     uint length;
     uint8_t* block;
 };
-
-class Sha256
+class Sha2
 {
-private:
-    void build_msg_block(const std::string input, message_block* msg);
-    void pre_process_step(const uint8_t* chunk, uint32_t chunk_32bit_entry[64]);
-    void hash_sha256(const uint32_t* input, uint32_t sha256_32bit_entry[8]);
+protected:
+    virtual void build_msg_block(const std::string input, message_block* msg) = 0;
+    virtual void pre_process_step(const uint8_t* chunk, uint32_t* chunk_32bit_entry) = 0;
+    virtual void hash_sha256(const uint32_t* input, uint32_t* sha256_32bit_entry)= 0;
     message_block msg_block;
+public:
+    virtual ~Sha2();
 public:
     uint32_t sha256_32bit_entry[8] = {
     0x6a09e667,
@@ -27,8 +28,14 @@ public:
     0x1f83d9ab,
     0x5be0cd19
     };
+};
+class Sha256 : public Sha2
+{
+public:
+    void build_msg_block(const std::string input, message_block* msg) override;
+    void pre_process_step(const uint8_t* chunk, uint32_t chunk_32bit_entry[64]) override;
+    void hash_sha256(const uint32_t* input, uint32_t sha256_32bit_entry[8]) override;
     Sha256(const std::string message);
     Sha256(const uint32_t _sha256_32bit_entry[8]);
-    ~Sha256();
-    bool operator==(const Sha256 hashedMessage);
+    auto operator==(const Sha256 hashedMessage);
 };
