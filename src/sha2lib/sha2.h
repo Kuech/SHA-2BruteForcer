@@ -8,6 +8,7 @@ struct message_block
     uint length;
     uint8_t* block;
 };
+
 class Sha2
 {
 protected:

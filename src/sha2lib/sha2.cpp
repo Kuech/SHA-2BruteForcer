@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
-#include <memory>
 
 #define ROTATE(i, r) ((i >> r) | (i << (32 - r)))
 // Check out https://sha256algorithm.com/
