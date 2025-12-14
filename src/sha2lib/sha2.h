@@ -14,7 +14,7 @@ class Sha2
 protected:
     virtual void build_msg_block(const std::string input, message_block* msg) = 0;
     virtual void pre_process_step(const uint8_t* chunk, uint32_t* chunk_32bit_entry) = 0;
-    virtual void hash_sha256(const uint32_t* input, uint32_t* sha256_32bit_entry)= 0;
+    virtual void hash_sha256(const uint32_t* input)= 0;
     message_block msg_block;
 public:
     virtual ~Sha2();
@@ -35,7 +35,7 @@ class Sha256 : public Sha2
 public:
     void build_msg_block(const std::string input, message_block* msg) override;
     void pre_process_step(const uint8_t* chunk, uint32_t chunk_32bit_entry[64]) override;
-    void hash_sha256(const uint32_t* input, uint32_t sha256_32bit_entry[8]) override;
+    void hash_sha256(const uint32_t* input) override;
     Sha256(const std::string message);
     Sha256(const uint32_t _sha256_32bit_entry[8]);
     auto operator==(const Sha256 hashedMessage);

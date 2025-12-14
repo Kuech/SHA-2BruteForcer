@@ -28,7 +28,7 @@ Sha256::Sha256(const std::string message)
         uint32_t pre_proc_msg[64];
         memset(pre_proc_msg, 0, 64*sizeof(uint32_t));
         this->pre_process_step(&this->msg_block.block[i*64], &pre_proc_msg[0]);
-        this->hash_sha256(pre_proc_msg, &this->sha256_32bit_entry[0]);
+        this->hash_sha256(pre_proc_msg);
     }
 }
 
@@ -54,44 +54,39 @@ auto Sha256::operator==(const Sha256 hashedMessage)
     return true;
 }
 
-void Sha256::hash_sha256(const uint32_t* input, uint32_t sha256_32bit_entry[8])
+void Sha256::hash_sha256(const uint32_t* input)
 {
-    uint32_t la = sha256_32bit_entry[0];
-    uint32_t lb = sha256_32bit_entry[1];
-    uint32_t lc = sha256_32bit_entry[2];
-    uint32_t ld = sha256_32bit_entry[3];
-    uint32_t le = sha256_32bit_entry[4];
-    uint32_t lf = sha256_32bit_entry[5];
-    uint32_t lg = sha256_32bit_entry[6];
-    uint32_t lh = sha256_32bit_entry[7];
+    enum WordIndex {la,lb,lc,ld,le,lf,lg,lh};
+    uint32_t wordCopy[8];
+    copy(this->sha256_32bit_entry, this->sha256_32bit_entry+8, wordCopy);
 
     for(int i=0;i<64;i++)
     {
-        uint32_t S1 = (ROTATE(le, 6) ^ ROTATE(le, 11) ^ ROTATE(le, 25));
-        uint32_t ch = (le & lf) ^ ((~le) & lg);
-        uint32_t temp1 = lh + S1 + ch + k[i] + input[i];
-        uint32_t S0 = (ROTATE(la, 2) ^ ROTATE(la, 13) ^ ROTATE(la, 22));
-        uint32_t maj = (la & lb) ^ (la & lc) ^ (lb & lc);
+        uint32_t S1 = (ROTATE(wordCopy[le], 6) ^ ROTATE(wordCopy[le], 11) ^ ROTATE(wordCopy[le], 25));
+        uint32_t ch = (wordCopy[le] & wordCopy[lf]) ^ ((~wordCopy[le]) & wordCopy[lg]);
+        uint32_t temp1 = wordCopy[lh] + S1 + ch + k[i] + input[i];
+        uint32_t S0 = (ROTATE(wordCopy[la], 2) ^ ROTATE(wordCopy[la], 13) ^ ROTATE(wordCopy[la], 22));
+        uint32_t maj = (wordCopy[la] & wordCopy[lb]) ^ (wordCopy[la] & wordCopy[lc]) ^ (wordCopy[lb] & wordCopy[lc]);
         uint32_t temp2 = S0 + maj;
 
-        lh = lg;
-        lg = lf;
-        lf = le;
-        le = ld + temp1;
-        ld = lc;
-        lc = lb;
-        lb = la;
-        la = temp1 + temp2;
+        wordCopy[lh] = wordCopy[lg];
+        wordCopy[lg] = wordCopy[lf];
+        wordCopy[lf] = wordCopy[le];
+        wordCopy[le] = wordCopy[ld] + temp1;
+        wordCopy[ld] = wordCopy[lc];
+        wordCopy[lc] = wordCopy[lb];
+        wordCopy[lb] = wordCopy[la];
+        wordCopy[la] = temp1 + temp2;
     }
 
-    sha256_32bit_entry[0] += la;
-    sha256_32bit_entry[1] += lb;
-    sha256_32bit_entry[2] += lc;
-    sha256_32bit_entry[3] += ld;
-    sha256_32bit_entry[4] += le;
-    sha256_32bit_entry[5] += lf;
-    sha256_32bit_entry[6] += lg;
-    sha256_32bit_entry[7] += lh;
+    this->sha256_32bit_entry[la] += wordCopy[la];
+    this->sha256_32bit_entry[lb] += wordCopy[lb];
+    this->sha256_32bit_entry[lc] += wordCopy[lc];
+    this->sha256_32bit_entry[ld] += wordCopy[ld];
+    this->sha256_32bit_entry[le] += wordCopy[le];
+    this->sha256_32bit_entry[lf] += wordCopy[lf];
+    this->sha256_32bit_entry[lg] += wordCopy[lg];
+    this->sha256_32bit_entry[lh] += wordCopy[lh];
 }
 
 void Sha256::pre_process_step(const uint8_t* chunk, uint32_t chunk_32bit_entry[64])
