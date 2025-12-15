@@ -3,6 +3,9 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <array>
+#include <sstream>
+#include <string>
 
 #define ROTATE(i, r) ((i >> r) | (i << (32 - r)))
 // Check out https://sha256algorithm.com/
@@ -42,11 +45,23 @@ Sha2::~Sha2()
     delete[] this->msg_block.block;
 }
 
-auto Sha256::operator==(const Sha256 hashedMessage)
+bool operator==(const Sha2& lhs, const Sha2& rhs)
 {
+    if(typeid(lhs) != typeid(rhs))
+    {
+        return false;
+    }
+    return lhs.equals(rhs);
+}
+
+bool Sha256::equals(const Sha2& other) const
+{
+    auto _other = dynamic_cast<const Sha256*>(&other);
+    auto otherValue = _other->GetWord();
+    auto thisValue = this->GetWord();
     for(int i=0;i<8;i++)
     {
-        if(this->sha256_32bit_entry[i] != hashedMessage.sha256_32bit_entry[i])
+        if(thisValue[i] != otherValue[i])
         {
             return false;
         }
@@ -54,9 +69,24 @@ auto Sha256::operator==(const Sha256 hashedMessage)
     return true;
 }
 
+std::array<uint32_t, 8> Sha256::GetWord() const
+{
+    std::array<uint32_t, 8> value
+    {
+        this->sha256_32bit_entry[la],
+        this->sha256_32bit_entry[lb],
+        this->sha256_32bit_entry[lc],
+        this->sha256_32bit_entry[ld],
+        this->sha256_32bit_entry[le],
+        this->sha256_32bit_entry[lf],
+        this->sha256_32bit_entry[lg],
+        this->sha256_32bit_entry[lh],
+    };
+    return value;
+}
+
 void Sha256::hash_sha256(const uint32_t* input)
 {
-    enum WordIndex {la,lb,lc,ld,le,lf,lg,lh};
     uint32_t wordCopy[8];
     copy(this->sha256_32bit_entry, this->sha256_32bit_entry+8, wordCopy);
 
@@ -122,35 +152,25 @@ void Sha256::build_msg_block(const string input, message_block* msg)
     }
 }
 
-void printSha256(const uint32_t* sha256Hash)
+std::string Sha2::ToString()
 {
-    for(int i=0;i<8;i++)
+    std::ostringstream oss;
+    auto buf = this->GetWord();
+    for(size_t i=0;i<buf.size();i++)
     {
-        cout << std::hex << static_cast<uint>(sha256Hash[i]) << ' ';
+        oss << std::uppercase << std::hex << buf[i];
     }
-    cout << std::dec << endl;
+    return oss.str();
 }
 
-// Temporary function, since operator== is not working with base class
-bool tempSha256Check(uint32_t a[8], uint32_t b[8])
-{
-    for(int i=0;i<8;i++)
-    {
-        if(a[i] != b[i])
-        {
-            return false;
-        }
-    }
-    return true;
-}
 
 void testSha256Hash(const string inputString, const uint32_t* expectedSha2Hash)
 {
-    Sha2* hashedString = new Sha256(inputString);
-    Sha2* expectedSha256 = new Sha256(expectedSha2Hash);
+    Sha256 hashedString = Sha256(inputString);
+    Sha256 expectedSha256 = Sha256(expectedSha2Hash);
 
     string testResult;
-    if(tempSha256Check(hashedString->sha256_32bit_entry, expectedSha256->sha256_32bit_entry))
+    if(hashedString == expectedSha256)
     {
         testResult = "✅";
     }
@@ -162,12 +182,10 @@ void testSha256Hash(const string inputString, const uint32_t* expectedSha2Hash)
     cout << "================================================================================================\n";
     cout << "Test for \"" << inputString << "\" " << testResult << '\n';
     cout << "Expected hash =>\n";
-    printSha256(expectedSha2Hash);
+    cout << expectedSha256.ToString() << endl;
     cout << "Actual hash =>\n";
-    printSha256(hashedString->sha256_32bit_entry);
+    cout << hashedString.ToString() << endl;
     cout << "================================================================================================\n\n";
-    delete hashedString;
-    delete expectedSha256;
 }
 
 int main() {
