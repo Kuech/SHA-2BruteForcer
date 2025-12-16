@@ -24,25 +24,24 @@ const static uint32_t k[64] = {
 
 Sha256::Sha256(const std::string message)
 {
-    this->build_msg_block(message, &this->msg_block);
-    uint round = this->msg_block.length/64;
+    this->msg_block = this->build_msg_block(message);
+    uint round = this->msg_block.size()/64;
     for(uint i=0;i<round;i++)
     {
         uint32_t pre_proc_msg[64];
         memset(pre_proc_msg, 0, 64*sizeof(uint32_t));
-        this->pre_process_step(&this->msg_block.block[i*64], &pre_proc_msg[0]);
+        this->pre_process_step(&this->msg_block.data()[i*64], &pre_proc_msg[0]);
         this->hash_sha256(pre_proc_msg);
     }
 }
 
 Sha256::Sha256(const uint32_t _sha256_32bit_entry[8]) : Sha2()
 {
-    copy(_sha256_32bit_entry,_sha256_32bit_entry+8,this->sha256_32bit_entry);
+    copy(_sha256_32bit_entry,_sha256_32bit_entry+8,this->word_entry);
 }
 
 Sha2::~Sha2()
 {
-    delete[] this->msg_block.block;
 }
 
 bool operator==(const Sha2& lhs, const Sha2& rhs)
@@ -73,14 +72,14 @@ std::array<uint32_t, 8> Sha256::GetWord() const
 {
     std::array<uint32_t, 8> value
     {
-        this->sha256_32bit_entry[la],
-        this->sha256_32bit_entry[lb],
-        this->sha256_32bit_entry[lc],
-        this->sha256_32bit_entry[ld],
-        this->sha256_32bit_entry[le],
-        this->sha256_32bit_entry[lf],
-        this->sha256_32bit_entry[lg],
-        this->sha256_32bit_entry[lh],
+        this->word_entry[la],
+        this->word_entry[lb],
+        this->word_entry[lc],
+        this->word_entry[ld],
+        this->word_entry[le],
+        this->word_entry[lf],
+        this->word_entry[lg],
+        this->word_entry[lh],
     };
     return value;
 }
@@ -88,7 +87,7 @@ std::array<uint32_t, 8> Sha256::GetWord() const
 void Sha256::hash_sha256(const uint32_t* input)
 {
     uint32_t wordCopy[8];
-    copy(this->sha256_32bit_entry, this->sha256_32bit_entry+8, wordCopy);
+    copy(this->word_entry, this->word_entry+8, wordCopy);
 
     for(int i=0;i<64;i++)
     {
@@ -109,14 +108,14 @@ void Sha256::hash_sha256(const uint32_t* input)
         wordCopy[la] = temp1 + temp2;
     }
 
-    this->sha256_32bit_entry[la] += wordCopy[la];
-    this->sha256_32bit_entry[lb] += wordCopy[lb];
-    this->sha256_32bit_entry[lc] += wordCopy[lc];
-    this->sha256_32bit_entry[ld] += wordCopy[ld];
-    this->sha256_32bit_entry[le] += wordCopy[le];
-    this->sha256_32bit_entry[lf] += wordCopy[lf];
-    this->sha256_32bit_entry[lg] += wordCopy[lg];
-    this->sha256_32bit_entry[lh] += wordCopy[lh];
+    this->word_entry[la] += wordCopy[la];
+    this->word_entry[lb] += wordCopy[lb];
+    this->word_entry[lc] += wordCopy[lc];
+    this->word_entry[ld] += wordCopy[ld];
+    this->word_entry[le] += wordCopy[le];
+    this->word_entry[lf] += wordCopy[lf];
+    this->word_entry[lg] += wordCopy[lg];
+    this->word_entry[lh] += wordCopy[lh];
 }
 
 void Sha256::pre_process_step(const uint8_t* chunk, uint32_t chunk_32bit_entry[64])
@@ -135,21 +134,24 @@ void Sha256::pre_process_step(const uint8_t* chunk, uint32_t chunk_32bit_entry[6
     }
 }
 
-void Sha256::build_msg_block(const string input, message_block* msg)
+std::vector<uint8_t> Sha256::build_msg_block(const string input)
 {
-    const uint remaining_bits=64-((input.length()+1+8)%64);
-    msg->length = (input.length()+1+8)+remaining_bits;;
-    msg->block = new uint8_t[msg->length];
-    memset(msg->block, 0, msg->length * sizeof(uint8_t));
+    std::vector<uint8_t> msg;
+    const uint remaining_bits= 64-((input.length()+1+8)%64);
+    size_t length = (input.length()+1+8)+remaining_bits;
+    msg.resize(length);
 
-    memcpy(msg->block,input.data(),input.length() * sizeof(uint8_t));
-    msg->block[input.length()] = 0b10000000;
+    fill(msg.begin(), msg.end(), 0);
+    memcpy(msg.data(),input.data(),input.length() * sizeof(uint8_t));
+
+    msg.at(input.length()) = 0b10000000;
 
     uint64_t stringlengthInBit =input.length() * 8;
     for(size_t i=0;i<8;i++)
     {
-        msg->block[(msg->length-8)+i] = stringlengthInBit >> (56 - 8 * i) & 0xFF;
+        msg.at(msg.size() - 8 + i) = stringlengthInBit >> (56  - 8 * i) & 0xFF;
     }
+    return msg;
 }
 
 std::string Sha2::ToString()
