@@ -28,9 +28,7 @@ Sha256::Sha256(const std::string message)
     uint round = this->msg_block.size()/64;
     for(uint i=0;i<round;i++)
     {
-        uint32_t pre_proc_msg[64];
-        memset(pre_proc_msg, 0, 64*sizeof(uint32_t));
-        this->pre_process_step(&this->msg_block.data()[i*64], &pre_proc_msg[0]);
+        auto pre_proc_msg = this->pre_process_step(&this->msg_block.data()[i*64]);
         this->hash_sha256(pre_proc_msg);
     }
 }
@@ -84,7 +82,7 @@ std::array<uint32_t, 8> Sha256::GetWord() const
     return value;
 }
 
-void Sha256::hash_sha256(const uint32_t* input)
+void Sha256::hash_sha256(const std::array<uint32_t, 64> input)
 {
     uint32_t wordCopy[8];
     copy(this->word_entry, this->word_entry+8, wordCopy);
@@ -118,20 +116,25 @@ void Sha256::hash_sha256(const uint32_t* input)
     this->word_entry[lh] += wordCopy[lh];
 }
 
-void Sha256::pre_process_step(const uint8_t* chunk, uint32_t chunk_32bit_entry[64])
+std::array<uint32_t, 64> Sha256::pre_process_step(const uint8_t* chunk)
 {
+    std::array<uint32_t, 64> pre_proc_msg;
+    fill(pre_proc_msg.begin(), pre_proc_msg.end(), 0);
+
     for(int i=0;i<64;i++)
     {
         // Yeah I know it's ugly, but if you know bitwise operations, it makes sense...
-        chunk_32bit_entry[i/4] = (chunk[i] << (24 - ((i%4) * 8))) | chunk_32bit_entry[i/4];
+        pre_proc_msg[i/4] = (chunk[i] << (24 - ((i%4) * 8))) | pre_proc_msg[i/4];
     }
 
     for(int i=16;i<64;i++)
     {
-        uint32_t s0 = (ROTATE(chunk_32bit_entry[i-15], 7) ^ ROTATE(chunk_32bit_entry[i-15], 18) ^ (chunk_32bit_entry[i-15] >> 3));
-        uint32_t s1 = (ROTATE(chunk_32bit_entry[i-2], 17) ^ ROTATE(chunk_32bit_entry[i-2], 19) ^ (chunk_32bit_entry[i-2] >> 10));
-        chunk_32bit_entry[i] = chunk_32bit_entry[i-16] + s0 + chunk_32bit_entry[i-7] + s1;
+        uint32_t s0 = (ROTATE(pre_proc_msg[i-15], 7) ^ ROTATE(pre_proc_msg[i-15], 18) ^ (pre_proc_msg[i-15] >> 3));
+        uint32_t s1 = (ROTATE(pre_proc_msg[i-2], 17) ^ ROTATE(pre_proc_msg[i-2], 19) ^ (pre_proc_msg[i-2] >> 10));
+        pre_proc_msg[i] = pre_proc_msg[i-16] + s0 + pre_proc_msg[i-7] + s1;
     }
+
+    return pre_proc_msg;
 }
 
 std::vector<uint8_t> Sha256::build_msg_block(const string input)

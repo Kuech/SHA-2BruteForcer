@@ -9,10 +9,10 @@ class Sha2
 protected:
     enum WordIndex {la,lb,lc,ld,le,lf,lg,lh};
     virtual std::vector<uint8_t> build_msg_block(const std::string input) = 0;
-    virtual void pre_process_step(const uint8_t* chunk, uint32_t* chunk_32bit_entry) = 0;
-    virtual void hash_sha256(const uint32_t* input)= 0;
-    std::vector<uint8_t> msg_block;
+    virtual std::array<uint32_t, 64> pre_process_step(const uint8_t* chunk) = 0;
+    virtual void hash_sha256(const std::array<uint32_t, 64> input)= 0;
     virtual bool equals(const Sha2& other) const = 0;
+    std::vector<uint8_t> msg_block;
 public:
     friend bool operator==(const Sha2& lhs, const Sha2& rhs);
     virtual ~Sha2();
@@ -24,8 +24,8 @@ class Sha256 : public Sha2
 protected:
     bool equals(const Sha2& other) const override;
     std::vector<uint8_t> build_msg_block(const std::string input) override;
-    void pre_process_step(const uint8_t* chunk, uint32_t chunk_32bit_entry[64]) override;
-    void hash_sha256(const uint32_t* input) override;
+    std::array<uint32_t, 64> pre_process_step(const uint8_t* chunk) override;
+    void hash_sha256(const std::array<uint32_t, 64> input) override;
 public:
     std::array<uint32_t, 8> GetWord() const override;
     Sha256(const std::string message);
