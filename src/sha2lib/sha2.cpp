@@ -7,7 +7,13 @@
 #include <sstream>
 #include <string>
 
-#define ROTATE(i, r) ((i >> r) | (i << (32 - r)))
+#define RIGHT_ROTATE(i, r) ((i >> r) | (i << (32 - r)))
+#define s0(i) (RIGHT_ROTATE(i, 7) ^ RIGHT_ROTATE(i, 18) ^ (i >> 3))
+#define s1(i) (RIGHT_ROTATE(i, 17) ^ RIGHT_ROTATE(i, 19) ^ (i >> 10))
+#define S0(a) (RIGHT_ROTATE(a, 2) ^ RIGHT_ROTATE(a, 13) ^ RIGHT_ROTATE(a, 22))
+#define S1(e) (RIGHT_ROTATE(e, 6) ^ RIGHT_ROTATE(e, 11) ^ RIGHT_ROTATE(e, 25))
+#define CH(e,f,g) ((e & f) ^ ((~e) & g))
+#define MAJ(a,b,c) ((a & b) ^ (a & c) ^ (b & c))
 // Check out https://sha256algorithm.com/
 using namespace std;
 
@@ -25,15 +31,15 @@ const static uint32_t k[64] = {
 Sha2Digest::Sha2Digest(const std::string message)
 {
     this->block = this->build_msg_block(message);
-    this->round = this->block.size()/64;
 }
 
 Sha256Digest::Sha256Digest(const std::string message) : Sha2Digest(message)
 {
-    for(uint i=0;i<this->round;i++)
+    while(this->block.size() > 0)
     {
-        auto pre_proc_msg = this->pre_process_step(&this->block.data()[i*64]);
-        this->hash_sha256(pre_proc_msg);
+        auto pre_proc_msg = this->pre_process_chunk(&this->block.data()[0]);
+        this->hash(pre_proc_msg);
+        this->block.erase(this->block.begin(), this->block.begin()+64);
     }
 }
 
@@ -90,19 +96,15 @@ std::array<uint32_t, 8> Sha256Digest::GetWord() const
     return value;
 }
 
-void Sha256Digest::hash_sha256(const std::array<uint32_t, 64> input)
+void Sha256Digest::hash(const std::array<uint32_t, 64> input)
 {
     uint32_t wordCopy[8];
     copy(this->word_entry, this->word_entry+8, wordCopy);
 
     for(int i=0;i<64;i++)
     {
-        uint32_t S1 = (ROTATE(wordCopy[le], 6) ^ ROTATE(wordCopy[le], 11) ^ ROTATE(wordCopy[le], 25));
-        uint32_t ch = (wordCopy[le] & wordCopy[lf]) ^ ((~wordCopy[le]) & wordCopy[lg]);
-        uint32_t temp1 = wordCopy[lh] + S1 + ch + k[i] + input[i];
-        uint32_t S0 = (ROTATE(wordCopy[la], 2) ^ ROTATE(wordCopy[la], 13) ^ ROTATE(wordCopy[la], 22));
-        uint32_t maj = (wordCopy[la] & wordCopy[lb]) ^ (wordCopy[la] & wordCopy[lc]) ^ (wordCopy[lb] & wordCopy[lc]);
-        uint32_t temp2 = S0 + maj;
+        uint32_t temp1 = wordCopy[lh] + S1(wordCopy[le]) + CH(wordCopy[le],wordCopy[lf],wordCopy[lg]) + k[i] + input[i];
+        uint32_t temp2 = S0(wordCopy[la]) + MAJ(wordCopy[la], wordCopy[lb], wordCopy[lc]);
 
         wordCopy[lh] = wordCopy[lg];
         wordCopy[lg] = wordCopy[lf];
@@ -124,7 +126,7 @@ void Sha256Digest::hash_sha256(const std::array<uint32_t, 64> input)
     this->word_entry[lh] += wordCopy[lh];
 }
 
-std::array<uint32_t, 64> Sha256Digest::pre_process_step(const uint8_t* chunk)
+std::array<uint32_t, 64> Sha256Digest::pre_process_chunk(const uint8_t* chunk)
 {
     std::array<uint32_t, 64> pre_proc_msg;
     fill(pre_proc_msg.begin(), pre_proc_msg.end(), 0);
@@ -132,14 +134,14 @@ std::array<uint32_t, 64> Sha256Digest::pre_process_step(const uint8_t* chunk)
     for(int i=0;i<64;i++)
     {
         // Yeah I know it's ugly, but if you know bitwise operations, it makes sense...
+        // Anyway, I am adding 8 bit data into 32 bit data,
+        // so 4 data of 8 bit must fit into a single 32 bit data
         pre_proc_msg[i/4] = (chunk[i] << (24 - ((i%4) * 8))) | pre_proc_msg[i/4];
     }
 
     for(int i=16;i<64;i++)
     {
-        uint32_t s0 = (ROTATE(pre_proc_msg[i-15], 7) ^ ROTATE(pre_proc_msg[i-15], 18) ^ (pre_proc_msg[i-15] >> 3));
-        uint32_t s1 = (ROTATE(pre_proc_msg[i-2], 17) ^ ROTATE(pre_proc_msg[i-2], 19) ^ (pre_proc_msg[i-2] >> 10));
-        pre_proc_msg[i] = pre_proc_msg[i-16] + s0 + pre_proc_msg[i-7] + s1;
+        pre_proc_msg[i] = pre_proc_msg[i-16] + s0(pre_proc_msg[i-15]) + pre_proc_msg[i-7] + s1(pre_proc_msg[i-2]);
     }
 
     return pre_proc_msg;
