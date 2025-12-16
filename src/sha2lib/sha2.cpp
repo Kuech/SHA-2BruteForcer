@@ -22,13 +22,13 @@ const static uint32_t k[64] = {
    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2 
 };
 
-Sha2::Sha2(const std::string message)
+Sha2Digest::Sha2Digest(const std::string message)
 {
     this->block = this->build_msg_block(message);
     this->round = this->block.size()/64;
 }
 
-Sha256::Sha256(const std::string message) : Sha2(message)
+Sha256Digest::Sha256Digest(const std::string message) : Sha2Digest(message)
 {
     for(uint i=0;i<this->round;i++)
     {
@@ -37,20 +37,20 @@ Sha256::Sha256(const std::string message) : Sha2(message)
     }
 }
 
-Sha256::Sha256(const uint32_t _sha256_32bit_entry[8]) : Sha2()
+Sha256Digest::Sha256Digest(const uint32_t _sha256_32bit_entry[8]) : Sha2Digest()
 {
     copy(_sha256_32bit_entry,_sha256_32bit_entry+8,this->word_entry);
 }
 
-Sha2::Sha2()
+Sha2Digest::Sha2Digest()
 {
 }
 
-Sha2::~Sha2()
+Sha2Digest::~Sha2Digest()
 {
 }
 
-bool operator==(const Sha2& lhs, const Sha2& rhs)
+bool operator==(const Sha2Digest& lhs, const Sha2Digest& rhs)
 {
     if(typeid(lhs) != typeid(rhs))
     {
@@ -59,9 +59,9 @@ bool operator==(const Sha2& lhs, const Sha2& rhs)
     return lhs.equals(rhs);
 }
 
-bool Sha256::equals(const Sha2& other) const
+bool Sha256Digest::equals(const Sha2Digest& other) const
 {
-    auto _other = dynamic_cast<const Sha256*>(&other);
+    auto _other = dynamic_cast<const Sha256Digest*>(&other);
     auto otherValue = _other->GetWord();
     auto thisValue = this->GetWord();
     for(int i=0;i<8;i++)
@@ -74,7 +74,7 @@ bool Sha256::equals(const Sha2& other) const
     return true;
 }
 
-std::array<uint32_t, 8> Sha256::GetWord() const
+std::array<uint32_t, 8> Sha256Digest::GetWord() const
 {
     std::array<uint32_t, 8> value
     {
@@ -90,7 +90,7 @@ std::array<uint32_t, 8> Sha256::GetWord() const
     return value;
 }
 
-void Sha256::hash_sha256(const std::array<uint32_t, 64> input)
+void Sha256Digest::hash_sha256(const std::array<uint32_t, 64> input)
 {
     uint32_t wordCopy[8];
     copy(this->word_entry, this->word_entry+8, wordCopy);
@@ -124,7 +124,7 @@ void Sha256::hash_sha256(const std::array<uint32_t, 64> input)
     this->word_entry[lh] += wordCopy[lh];
 }
 
-std::array<uint32_t, 64> Sha256::pre_process_step(const uint8_t* chunk)
+std::array<uint32_t, 64> Sha256Digest::pre_process_step(const uint8_t* chunk)
 {
     std::array<uint32_t, 64> pre_proc_msg;
     fill(pre_proc_msg.begin(), pre_proc_msg.end(), 0);
@@ -145,7 +145,7 @@ std::array<uint32_t, 64> Sha256::pre_process_step(const uint8_t* chunk)
     return pre_proc_msg;
 }
 
-std::vector<uint8_t> Sha2::build_msg_block(const string input)
+std::vector<uint8_t> Sha2Digest::build_msg_block(const string input)
 {
     std::vector<uint8_t> msg;
     const uint remaining_bits= 64-((input.length()+1+8)%64);
@@ -165,7 +165,7 @@ std::vector<uint8_t> Sha2::build_msg_block(const string input)
     return msg;
 }
 
-std::string Sha2::ToString()
+std::string Sha2Digest::ToString()
 {
     std::ostringstream oss;
     auto buf = this->GetWord();
@@ -179,8 +179,8 @@ std::string Sha2::ToString()
 
 void testSha256Hash(const string inputString, const uint32_t* expectedSha2Hash)
 {
-    Sha256 hashedString = Sha256(inputString);
-    Sha256 expectedSha256 = Sha256(expectedSha2Hash);
+    Sha256Digest hashedString = Sha256Digest(inputString);
+    Sha256Digest expectedSha256 = Sha256Digest(expectedSha2Hash);
 
     string testResult;
     if(hashedString == expectedSha256)
