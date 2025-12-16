@@ -22,13 +22,17 @@ const static uint32_t k[64] = {
    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2 
 };
 
-Sha256::Sha256(const std::string message)
+Sha2::Sha2(const std::string message)
 {
-    this->msg_block = this->build_msg_block(message);
-    uint round = this->msg_block.size()/64;
-    for(uint i=0;i<round;i++)
+    this->block = this->build_msg_block(message);
+    this->round = this->block.size()/64;
+}
+
+Sha256::Sha256(const std::string message) : Sha2(message)
+{
+    for(uint i=0;i<this->round;i++)
     {
-        auto pre_proc_msg = this->pre_process_step(&this->msg_block.data()[i*64]);
+        auto pre_proc_msg = this->pre_process_step(&this->block.data()[i*64]);
         this->hash_sha256(pre_proc_msg);
     }
 }
@@ -36,6 +40,10 @@ Sha256::Sha256(const std::string message)
 Sha256::Sha256(const uint32_t _sha256_32bit_entry[8]) : Sha2()
 {
     copy(_sha256_32bit_entry,_sha256_32bit_entry+8,this->word_entry);
+}
+
+Sha2::Sha2()
+{
 }
 
 Sha2::~Sha2()
@@ -137,7 +145,7 @@ std::array<uint32_t, 64> Sha256::pre_process_step(const uint8_t* chunk)
     return pre_proc_msg;
 }
 
-std::vector<uint8_t> Sha256::build_msg_block(const string input)
+std::vector<uint8_t> Sha2::build_msg_block(const string input)
 {
     std::vector<uint8_t> msg;
     const uint remaining_bits= 64-((input.length()+1+8)%64);

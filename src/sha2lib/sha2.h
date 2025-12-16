@@ -8,14 +8,17 @@ class Sha2
 {
 protected:
     enum WordIndex {la,lb,lc,ld,le,lf,lg,lh};
-    virtual std::vector<uint8_t> build_msg_block(const std::string input) = 0;
+    std::vector<uint8_t> build_msg_block(const std::string input);
     virtual std::array<uint32_t, 64> pre_process_step(const uint8_t* chunk) = 0;
     virtual void hash_sha256(const std::array<uint32_t, 64> input)= 0;
     virtual bool equals(const Sha2& other) const = 0;
-    std::vector<uint8_t> msg_block;
+    std::vector<uint8_t> block;
+    size_t round;
 public:
     friend bool operator==(const Sha2& lhs, const Sha2& rhs);
-    virtual ~Sha2();
+    ~Sha2();
+    Sha2();
+    Sha2(const std::string message);
     std::string ToString();
     virtual std::array<uint32_t, 8> GetWord() const = 0;
 };
@@ -23,7 +26,6 @@ class Sha256 : public Sha2
 {
 protected:
     bool equals(const Sha2& other) const override;
-    std::vector<uint8_t> build_msg_block(const std::string input) override;
     std::array<uint32_t, 64> pre_process_step(const uint8_t* chunk) override;
     void hash_sha256(const std::array<uint32_t, 64> input) override;
 public:
