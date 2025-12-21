@@ -28,12 +28,12 @@ const static uint32_t k[64] = {
    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2 
 };
 
-Sha2Digest::Sha2Digest(const std::string message)
+Sha2Base::Sha2Base(const std::string message)
 {
     this->block = this->build_msg_block(message);
 }
 
-Sha256Digest::Sha256Digest(const std::string message) : Sha2Digest(message)
+Sha256Digest::Sha256Digest(const std::string message) : Sha2Base(message)
 {
     while(this->block.size() > 0)
     {
@@ -43,20 +43,20 @@ Sha256Digest::Sha256Digest(const std::string message) : Sha2Digest(message)
     }
 }
 
-Sha256Digest::Sha256Digest(const uint32_t _sha256_32bit_entry[8]) : Sha2Digest()
+Sha256Digest::Sha256Digest(const uint32_t _sha256_32bit_entry[8]) : Sha2Base()
 {
     copy(_sha256_32bit_entry,_sha256_32bit_entry+8,this->word_entry);
 }
 
-Sha2Digest::Sha2Digest()
+Sha2Base::Sha2Base()
 {
 }
 
-Sha2Digest::~Sha2Digest()
+Sha2Base::~Sha2Base()
 {
 }
 
-bool operator==(const Sha2Digest& lhs, const Sha2Digest& rhs)
+bool operator==(const Sha2Base& lhs, const Sha2Base& rhs)
 {
     if(typeid(lhs) != typeid(rhs))
     {
@@ -65,7 +65,7 @@ bool operator==(const Sha2Digest& lhs, const Sha2Digest& rhs)
     return lhs.equals(rhs);
 }
 
-bool Sha256Digest::equals(const Sha2Digest& other) const
+bool Sha256Digest::equals(const Sha2Base& other) const
 {
     auto _other = dynamic_cast<const Sha256Digest*>(&other);
     auto otherValue = _other->GetWord();
@@ -147,7 +147,7 @@ std::array<uint32_t, 64> Sha256Digest::pre_process_chunk(const uint8_t* chunk)
     return pre_proc_msg;
 }
 
-std::vector<uint8_t> Sha2Digest::build_msg_block(const string input)
+std::vector<uint8_t> Sha2Base::build_msg_block(const string input)
 {
     std::vector<uint8_t> msg;
     const uint remaining_bits= 64-((input.length()+1+8)%64);
@@ -167,7 +167,7 @@ std::vector<uint8_t> Sha2Digest::build_msg_block(const string input)
     return msg;
 }
 
-std::string Sha2Digest::ToString()
+std::string Sha2Base::ToString()
 {
     std::ostringstream oss;
     auto buf = this->GetWord();

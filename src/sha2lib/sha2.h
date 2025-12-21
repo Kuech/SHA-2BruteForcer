@@ -4,27 +4,27 @@
 #include <iostream>
 #include <vector>
 
-class Sha2Digest
+class Sha2Base
 {
 protected:
     enum WordIndex {la,lb,lc,ld,le,lf,lg,lh};
     std::vector<uint8_t> build_msg_block(const std::string input);
     virtual std::array<uint32_t, 64> pre_process_chunk(const uint8_t* chunk) = 0;
     virtual void hash(const std::array<uint32_t, 64> input)= 0;
-    virtual bool equals(const Sha2Digest& other) const = 0;
+    virtual bool equals(const Sha2Base& other) const = 0;
     std::vector<uint8_t> block;
 public:
-    friend bool operator==(const Sha2Digest& lhs, const Sha2Digest& rhs);
-    ~Sha2Digest();
-    Sha2Digest();
-    Sha2Digest(const std::string message);
+    friend bool operator==(const Sha2Base& lhs, const Sha2Base& rhs);
+    ~Sha2Base();
+    Sha2Base();
+    Sha2Base(const std::string message);
     std::string ToString();
     virtual std::array<uint32_t, 8> GetWord() const = 0;
 };
-class Sha256Digest : public Sha2Digest
+class Sha256Digest : public Sha2Base
 {
 protected:
-    bool equals(const Sha2Digest& other) const override;
+    bool equals(const Sha2Base& other) const override;
     std::array<uint32_t, 64> pre_process_chunk(const uint8_t* chunk) override;
     void hash(const std::array<uint32_t, 64> input) override;
 public:
