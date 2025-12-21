@@ -10,26 +10,9 @@ class Sha2Base
 protected:
     enum WordIndex {la,lb,lc,ld,le,lf,lg,lh};
     std::vector<uint8_t> build_msg_block(const std::string input);
-    virtual std::array<uint32_t, 64> pre_process_chunk(const uint8_t* chunk) = 0;
-    virtual void hash(const std::array<uint32_t, 64> input)= 0;
+    std::array<WordBitSize, ChunkSize> pre_process_chunk(const uint8_t* chunk);
+    void hash(const std::array<WordBitSize, ChunkSize> input);
     std::vector<uint8_t> block;
-public:
-    ~Sha2Base();
-    Sha2Base();
-    Sha2Base(const std::string message);
-    std::string ToString();
-    virtual std::array<uint32_t, 8> GetWord() const = 0;
-};
-class Sha256Digest : public Sha2Base<uint32_t, 64>
-{
-protected:
-    std::array<uint32_t, 64> pre_process_chunk(const uint8_t* chunk) override;
-    void hash(const std::array<uint32_t, 64> input) override;
-public:
-    std::array<uint32_t, 8> GetWord() const override;
-    Sha256Digest(const std::string message);
-    Sha256Digest(const uint32_t _sha256_32bit_entry[8]);
-private:
     uint32_t word_entry[8]
     {
     0x6a09e667,
@@ -41,4 +24,16 @@ private:
     0x1f83d9ab,
     0x5be0cd19
     };
+public:
+    ~Sha2Base();
+    Sha2Base();
+    Sha2Base(const std::string message);
+    std::string ToString();
+    std::array<WordBitSize, 8> GetWord() const;
+};
+class Sha256Digest : public Sha2Base<uint32_t, 64>
+{
+public:
+    Sha256Digest(const std::string message);
+    Sha256Digest(const uint32_t _sha256_32bit_entry[8]);
 };

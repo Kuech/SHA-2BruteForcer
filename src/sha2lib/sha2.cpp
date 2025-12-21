@@ -59,9 +59,10 @@ Sha2Base<WordBitSize, ChunkSize>::~Sha2Base()
 {
 }
 
-std::array<uint32_t, 8> Sha256Digest::GetWord() const
+template<typename WordBitSize, size_t ChunkSize>
+std::array<WordBitSize, 8> Sha2Base<WordBitSize, ChunkSize>::GetWord() const
 {
-    std::array<uint32_t, 8> value
+    std::array<WordBitSize, 8> value
     {
         this->word_entry[la],
         this->word_entry[lb],
@@ -75,15 +76,16 @@ std::array<uint32_t, 8> Sha256Digest::GetWord() const
     return value;
 }
 
-void Sha256Digest::hash(const std::array<uint32_t, 64> input)
+template<typename WordBitSize, size_t ChunkSize>
+void Sha2Base<WordBitSize, ChunkSize>::hash(const std::array<WordBitSize, ChunkSize> input)
 {
-    uint32_t wordCopy[8];
+    WordBitSize wordCopy[8];
     copy(this->word_entry, this->word_entry+8, wordCopy);
 
-    for(int i=0;i<64;i++)
+    for(size_t i=0;i<ChunkSize;i++)
     {
-        uint32_t temp1 = wordCopy[lh] + S1(wordCopy[le]) + CH(wordCopy[le],wordCopy[lf],wordCopy[lg]) + k[i] + input[i];
-        uint32_t temp2 = S0(wordCopy[la]) + MAJ(wordCopy[la], wordCopy[lb], wordCopy[lc]);
+        WordBitSize temp1 = wordCopy[lh] + S1(wordCopy[le]) + CH(wordCopy[le],wordCopy[lf],wordCopy[lg]) + k[i] + input[i];
+        WordBitSize temp2 = S0(wordCopy[la]) + MAJ(wordCopy[la], wordCopy[lb], wordCopy[lc]);
 
         wordCopy[lh] = wordCopy[lg];
         wordCopy[lg] = wordCopy[lf];
@@ -105,12 +107,13 @@ void Sha256Digest::hash(const std::array<uint32_t, 64> input)
     this->word_entry[lh] += wordCopy[lh];
 }
 
-std::array<uint32_t, 64> Sha256Digest::pre_process_chunk(const uint8_t* chunk)
+template<typename WordBitSize, size_t ChunkSize>
+std::array<WordBitSize, ChunkSize> Sha2Base<WordBitSize, ChunkSize>::pre_process_chunk(const uint8_t* chunk)
 {
-    std::array<uint32_t, 64> pre_proc_msg;
+    std::array<WordBitSize, ChunkSize> pre_proc_msg;
     fill(pre_proc_msg.begin(), pre_proc_msg.end(), 0);
 
-    for(int i=0;i<64;i++)
+    for(size_t i=0;i<ChunkSize;i++)
     {
         // Yeah I know it's ugly, but if you know bitwise operations, it makes sense...
         // Anyway, I am adding 8 bit data into 32 bit data,
@@ -118,7 +121,7 @@ std::array<uint32_t, 64> Sha256Digest::pre_process_chunk(const uint8_t* chunk)
         pre_proc_msg[i/4] = (chunk[i] << (24 - ((i%4) * 8))) | pre_proc_msg[i/4];
     }
 
-    for(int i=16;i<64;i++)
+    for(size_t i=16;i<ChunkSize;i++)
     {
         pre_proc_msg[i] = pre_proc_msg[i-16] + s0(pre_proc_msg[i-15]) + pre_proc_msg[i-7] + s1(pre_proc_msg[i-2]);
     }
